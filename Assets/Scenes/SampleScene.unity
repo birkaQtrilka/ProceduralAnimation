@@ -412,6 +412,7 @@ MonoBehaviour:
     type: 3}
   _jointCount: 2
   _target: {fileID: 800377719}
+  _acceptableDistance: 0.1
 --- !u!23 &749248340
 MeshRenderer:
   m_ObjectHideFlags: 0
