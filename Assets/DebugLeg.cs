@@ -6,10 +6,11 @@ public class DebugLeg : Leg
     int _updateIndex;
     Func<bool>[] steps;
     int currentJoint = 0;
-    public bool Step;
+    LegManager LegManager;
 
-    public DebugLeg(float angleX, float angleY, BoxCollider legPrefab, Transform target,int jointCount, Transform baseTransf, float acceptableDistance, int acceptableTries) : base(angleX, angleY, legPrefab, target, jointCount, baseTransf, acceptableDistance, acceptableTries)
+    public DebugLeg(float angleX, float angleY, BoxCollider legPrefab, int jointCount, Transform baseTransf, float acceptableDistance, int acceptableTries, LegManager legM) : base(angleX, angleY, legPrefab, jointCount, baseTransf, acceptableDistance, acceptableTries)
     {
+        LegManager = legM;
     }
 
     void InitSteps()
@@ -47,6 +48,17 @@ public class DebugLeg : Leg
 
     bool DebugIK()
     {
+        Vector3 direction = Vector3.RotateTowards(baseTransf.right, baseTransf.forward, angleY, 1);
+        if (angleX < 0) direction *= -1;
+        if (!Physics.Raycast(baseTransf.position + direction, -baseTransf.up, out RaycastHit hit, 10, 1<<LayerMask.NameToLayer("Ground")))
+        {
+            Debug.Log("No ground");
+            return true;
+        }
+        
+        Vector3 target = hit.point;
+        _debug = new() { last = target };
+
         //stop
         if (currentJoint >= jointCount * 2)
         {
@@ -60,7 +72,7 @@ public class DebugLeg : Leg
             if (currentJoint == 0)
             {
                 Member foot = members[0];
-                foot.SetBoxTransform(target.position);
+                foot.SetBoxTransform(target);
                 currentJoint++;
 
                 return false;
@@ -92,9 +104,9 @@ public class DebugLeg : Leg
         return false;
     }
 
-    void DebugAlgorithm()
+    public override void Update()
     {
-        if (Step)
+        if (LegManager.Step)
         {
             if (steps == null || _updateIndex >= steps.Length)
                 InitSteps();
@@ -103,7 +115,8 @@ public class DebugLeg : Leg
 
             if (result) _updateIndex++;
 
-            Step = false;
+            LegManager.Step = false;
         }
     }
+
 }

@@ -35,7 +35,12 @@ public class Member
 
     Vector3 GetSizeAndDirection()
     {
-        return Box.transform.lossyScale.y * .5f * Box.transform.up;
+        return GetSize() * Box.transform.up;
 
+    }
+
+    public float GetSize()
+    {
+        return Box.transform.lossyScale.y * .5f;
     }
 }
