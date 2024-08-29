@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using UnityEngine;
+using UnityEngine.UIElements.Experimental;
 
 public class Leg
 {
@@ -10,14 +11,9 @@ public class Leg
         public Vector3 live;
     }
 
-    protected int jointCount;
-    protected Transform baseTransf;
-    protected float angleX;
-    protected float angleY;
-    protected readonly Member[] members;
 
-    readonly float _acceptableDistance;
-    readonly int _acceptableTries = 5;
+    protected readonly Member[] members;
+    protected LegManager data;
 
     protected GizmosInfo _debug;
     protected float stepDistance = 1;
@@ -26,31 +22,26 @@ public class Leg
 
     float _currLerpTime;
     float _lerpTime = 0.4f;
+    float _angleX, _angleY;
 
     Leg[] _adjacentLegs;
     public bool IsGrounded => _currLerpTime > _lerpTime;
 
-    public Leg(float angleX, float angleY, BoxCollider legPrefab, int jointCount, Transform baseTransf, float acceptableDistance, int acceptableTries)
+    public Leg(float angleX, float angleY, BoxCollider legPrefab, int jointCount, LegManager data)
     {
-        this.jointCount = jointCount;
-        this.baseTransf = baseTransf;
-        this.angleX = angleX;
-        this.angleY = angleY;
-        _acceptableDistance = acceptableDistance;
-        _acceptableTries = acceptableTries;
+        this.data = data;
+        _angleX = angleX;
+        _angleY = angleY;
 
         members = new Member[jointCount];
         for (int i = 0; i < jointCount; i++)
-            members[i] = new Member(GameObject.Instantiate(legPrefab, baseTransf));
+            members[i] = new Member(GameObject.Instantiate(legPrefab, data.transform));
         //PositionLeg();
     }
 
     public virtual void Update()
     {
-        Vector3 direction = Vector3.RotateTowards(baseTransf.right, baseTransf.forward, angleY * (angleX < 0 ? -1 : 1), 1);
-        if (angleX < 0) direction *= -1;
-        direction += baseTransf.forward * .8f;
-        if (!Physics.Raycast(baseTransf.position + direction, -baseTransf.up, out RaycastHit hit, GetLegReach(), 1<<LayerMask.NameToLayer("Ground")))
+        if (!GetGround(out Vector3 groundPoint))
         {
             _debug = null;
             return;
@@ -58,11 +49,11 @@ public class Leg
 
         _currLerpTime += Time.deltaTime;
 
-        if (Vector3.Distance(_currentTarget, hit.point) > stepDistance && AdjacentLegsAreGrounded())
+        if (Vector3.Distance(_currentTarget, groundPoint) > stepDistance && AdjacentLegsAreGrounded())
         {
             _lastTarget = _currentTarget;   
             _currLerpTime = 0;
-            _currentTarget = hit.point;
+            _currentTarget = groundPoint;
         }
 
         Member foot = members[0];
@@ -71,13 +62,22 @@ public class Leg
 
         Vector3 target = Vector3.Lerp(_lastTarget, _currentTarget, _currLerpTime / _lerpTime);
 
-        _debug = new() { last = _lastTarget, current = _currentTarget, live = hit.point};
-        while (Vector3.Distance(foot.GetEndPosition(), target) > _acceptableDistance && tries < _acceptableTries)
+        _debug = new() { last = _lastTarget, current = _currentTarget, live = groundPoint};
+        while (Vector3.Distance(foot.GetEndPosition(), target) > data.AcceptableDistance && tries < data.CalibrationAttempts)
         {
             InverseKinematics(target);
             tries++;
         }
 
+    }
+
+    bool GetGround(out Vector3 target)
+    {
+        Vector3 direction = GetYAngle() + data.transform.forward * data.ForwardReach;
+
+        bool hasHit = Physics.Raycast(data.transform.position + direction, -data.transform.up, out RaycastHit hit, GetLegReach(), 1 << LayerMask.NameToLayer("Ground"));
+        target = hit.point;
+        return hasHit;
     }
 
     bool AdjacentLegsAreGrounded()
@@ -111,10 +111,10 @@ public class Leg
 
     void PositionLeg()
     {
-        Vector3 direction = Vector3.RotateTowards(baseTransf.right, baseTransf.up, angleX, 1);
-        Vector3 target = baseTransf.position;
-        direction = Vector3.RotateTowards(direction, baseTransf.forward, angleY, 1);
+        Vector3 direction = GetYAngle();
+        direction = GetXAngle(direction);
 
+        Vector3 target = data.transform.position;
 
         for (int i = members.Length - 1; i >= 0; i--)
         {
@@ -127,6 +127,16 @@ public class Leg
 
             target = current.GetEndPosition();
         }
+    }
+    
+    Vector3 GetYAngle()
+    {
+        return Vector3.RotateTowards(data.transform.right, data.transform.forward, data.AngleY + _angleY, 1);
+    }
+
+    Vector3 GetXAngle(Vector3 Yrotated)
+    {
+        return Vector3.RotateTowards(Yrotated, data.transform.up, data.AngleX + _angleX, 1);
     }
 
     void InverseKinematics(Vector3 target)
@@ -143,7 +153,7 @@ public class Leg
         }
 
         Member legBase = members[^1];
-        legBase.SetStartPosition(baseTransf.position);
+        legBase.SetStartPosition(data.transform.position);
         for (int i = members.Length - 2; i >= 0; i--)
         {
             Member current = members[i];

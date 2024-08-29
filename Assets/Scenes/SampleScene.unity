@@ -515,12 +515,15 @@ MonoBehaviour:
   _legPrefab: {fileID: 35452162800701799, guid: 3a93b5d35f3246a46b1e72657899b64d,
     type: 3}
   _jointCount: 5
-  _acceptableDistance: 0.1
-  _angleX: 1
-  _angleY: 0.3
+  <AcceptableDistance>k__BackingField: 0.05
+  <AngleX>k__BackingField: 0
+  <AngleY>k__BackingField: 0.2
+  <CalibrationAttempts>k__BackingField: 5
+  <MoveSpeed>k__BackingField: 0.1
+  <Gizmos>k__BackingField: 0
+  <WobbleSpeed>k__BackingField: 1.69
+  <WobbleAmplitude>k__BackingField: 0.15
   Step: 0
-  _acceptableTries: 10
-  _moveSpeed: 1
 --- !u!4 &749248342
 Transform:
   m_ObjectHideFlags: 0
