@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-
+[SelectionBase]
 public class LegManager : MonoBehaviour
 {
     [SerializeField] BoxCollider _legPrefab;
@@ -16,12 +16,18 @@ public class LegManager : MonoBehaviour
     [field: SerializeField] public float WobbleSpeed {get; private set;} = 1.69f;
     [field: SerializeField] public float WobbleAmplitude { get; private set; } = .15f;
     [field: SerializeField] public float ForwardReach { get; private set; } = .8f;
+    [field: SerializeField] public float StepSpeed { get; private set; } = .5f;
+    [field: SerializeField] public float DistanceFromBody { get; private set; } = .5f;
+
+
+    [SerializeField] float _groundOffset = 1f;
+    [SerializeField] float _heightChangeLerp;
 
     [SerializeField] BoxCollider firstLeg;
     [SerializeField] BoxCollider firstSecondLeg;
-
     Leg[] _legs;
     public bool Step;
+    float _lastBodyHeight;
 
     void Start()
     {
@@ -38,17 +44,6 @@ public class LegManager : MonoBehaviour
         };
 
         SetAdjacentLegs(_legs);
-
-        //_legs = new DebugLeg[]
-        //{
-        //    new (_angleX, _angleY, _legPrefab, _jointCount,transform, _acceptableDistance, _acceptableTries, this),
-        //    new (_angleX, 0, _legPrefab, _jointCount,transform, _acceptableDistance, _acceptableTries, this),
-        //    new (_angleX, -_angleY, _legPrefab, _jointCount,transform, _acceptableDistance, _acceptableTries, this),
-
-        //    new (-_angleX - 135, _angleY, _legPrefab, _jointCount,transform, _acceptableDistance, _acceptableTries, this),
-        //    new (-_angleX - 135, 0, _legPrefab, _jointCount,transform, _acceptableDistance, _acceptableTries, this),
-        //    new (-_angleX - 135, -_angleY, _legPrefab, _jointCount,transform, _acceptableDistance, _acceptableTries, this),
-        //};
     }
 
     void SetAdjacentLegs( Leg[] arr)
@@ -84,12 +79,42 @@ public class LegManager : MonoBehaviour
 
     void Update()
     {
-        transform.position += MoveSpeed * Time.deltaTime * transform.forward;
-        transform.position += Time.deltaTime * WobbleAmplitude * Mathf.Sin(Time.time * WobbleSpeed) * transform.up;
+        MoveBody();
+        UpdateLegs();
+        SetBodyHeight();
+    }
+
+    void UpdateLegs()
+    {
         foreach (Leg leg in _legs)
-        {
             leg.Update();
-        }
+    }
+
+    void MoveBody()
+    {
+        transform.position += MoveSpeed * Time.deltaTime * transform.forward;
+    }
+
+    void SetBodyHeight()
+    {
+        float groundPositionAverage = 0;
+
+        foreach (Leg leg in _legs)
+            groundPositionAverage += leg.CurrentGroundPosition.y;
+        
+        groundPositionAverage = (groundPositionAverage / _legs.Length) + _groundOffset;
+        //adding wobble
+        groundPositionAverage += Time.deltaTime * WobbleAmplitude * Mathf.Sin(Time.time * WobbleSpeed);
+
+        float lerpedHeight = Lerp(_lastBodyHeight, groundPositionAverage, _heightChangeLerp * Time.deltaTime);
+        transform.position = new Vector3(transform.position.x, lerpedHeight, transform.position.z);
+        _lastBodyHeight = lerpedHeight;
+    }
+
+
+    float Lerp(float start, float end, float t)
+    {
+        return start + (end - start) * t;
     }
 
     void OnDrawGizmos()

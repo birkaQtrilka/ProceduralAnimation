@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements.Experimental;
+using static UnityEngine.GraphicsBuffer;
 
 public class Leg
 {
@@ -17,15 +18,15 @@ public class Leg
 
     protected GizmosInfo _debug;
     protected float stepDistance = 1;
-    Vector3 _currentTarget;
+    Vector3 _nextTarget;
     Vector3 _lastTarget;
 
     float _currLerpTime;
-    float _lerpTime = 0.4f;
     float _angleX, _angleY;
 
     Leg[] _adjacentLegs;
-    public bool IsGrounded => _currLerpTime > _lerpTime;
+    public bool IsGrounded => _currLerpTime > data.StepSpeed;
+    public Vector3 CurrentGroundPosition { get; private set; }
 
     public Leg(float angleX, float angleY, BoxCollider legPrefab, int jointCount, LegManager data)
     {
@@ -36,33 +37,39 @@ public class Leg
         members = new Member[jointCount];
         for (int i = 0; i < jointCount; i++)
             members[i] = new Member(GameObject.Instantiate(legPrefab, data.transform));
-        //PositionLeg();
+       
+        //initial positioning
+        Vector3 groundPoint;
+        if(!GetGround(out groundPoint))
+        {
+            Vector3 direction = GetYAngle() + data.ForwardReach * data.transform.forward + GetLegReach() * -data.transform.up / 2f;
+            groundPoint = data.transform.position + direction;
+        }
+        CurrentGroundPosition = groundPoint;
+        
+        _lastTarget = groundPoint;
+        _nextTarget = groundPoint;
+        PositionLeg();
+        InverseKinematics(_lastTarget);
     }
 
     public virtual void Update()
     {
-        if (!GetGround(out Vector3 groundPoint))
+        if (!GetGround(out Vector3 currentTarget))
         {
             _debug = null;
             return;
         }
+        CurrentGroundPosition = currentTarget;
 
-        _currLerpTime += Time.deltaTime;
+        Vector3 target = InterpolateToTarget(currentTarget);
 
-        if (Vector3.Distance(_currentTarget, groundPoint) > stepDistance && AdjacentLegsAreGrounded())
-        {
-            _lastTarget = _currentTarget;   
-            _currLerpTime = 0;
-            _currentTarget = groundPoint;
-        }
+        _debug = new() { last = _lastTarget, current = _nextTarget, live = currentTarget };
+
+        PositionLeg();
 
         Member foot = members[0];
         int tries = 0;
-        PositionLeg();
-
-        Vector3 target = Vector3.Lerp(_lastTarget, _currentTarget, _currLerpTime / _lerpTime);
-
-        _debug = new() { last = _lastTarget, current = _currentTarget, live = groundPoint};
         while (Vector3.Distance(foot.GetEndPosition(), target) > data.AcceptableDistance && tries < data.CalibrationAttempts)
         {
             InverseKinematics(target);
@@ -71,15 +78,31 @@ public class Leg
 
     }
 
+    Vector3 InterpolateToTarget(Vector3 currentTarget)
+    {
+        _currLerpTime += Time.deltaTime;
+
+        if (Vector3.Distance(_nextTarget, currentTarget) > stepDistance && AdjacentLegsAreGrounded())
+        {
+            _lastTarget = _nextTarget;
+            _currLerpTime = 0;
+            _nextTarget = currentTarget;
+        }
+
+        return Vector3.Slerp(_lastTarget, _nextTarget, _currLerpTime / data.StepSpeed);
+    }
+
     bool GetGround(out Vector3 target)
     {
-        Vector3 direction = GetYAngle() + data.transform.forward * data.ForwardReach;
+        Vector3 direction = GetYAngle() * data.DistanceFromBody + data.transform.forward * data.ForwardReach;
+        //in case the ground is higher than the body position, so the ray doesn't ignore the mesh 
+        Vector3 abovePoint = data.transform.up * 5;
 
-        bool hasHit = Physics.Raycast(data.transform.position + direction, -data.transform.up, out RaycastHit hit, GetLegReach(), 1 << LayerMask.NameToLayer("Ground"));
+        bool hasHit = Physics.Raycast(data.transform.position + abovePoint + direction, -data.transform.up, out RaycastHit hit, GetLegReach() + abovePoint.magnitude, 1 << LayerMask.NameToLayer("Ground"));
         target = hit.point;
         return hasHit;
     }
-
+    
     bool AdjacentLegsAreGrounded()
     {
         return _adjacentLegs.All(l => l.IsGrounded);
