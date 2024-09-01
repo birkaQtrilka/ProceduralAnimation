@@ -17,7 +17,6 @@ public class Leg
     protected LegManager data;
 
     protected GizmosInfo _debug;
-    protected float stepDistance = 1;
     Vector3 _nextTarget;
     Vector3 _lastTarget;
 
@@ -81,8 +80,8 @@ public class Leg
     Vector3 InterpolateToTarget(Vector3 currentTarget)
     {
         _currLerpTime += Time.deltaTime;
-
-        if (Vector3.Distance(_nextTarget, currentTarget) > stepDistance && AdjacentLegsAreGrounded())
+        float triggerDistance = data.IsMoving ? data.StepDistance : data.RestStepDistance;
+        if (Vector3.Distance(_nextTarget, currentTarget) > triggerDistance && AdjacentLegsAreGrounded())
         {
             _lastTarget = _nextTarget;
             _currLerpTime = 0;

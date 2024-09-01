@@ -4,21 +4,25 @@ using UnityEngine;
 [SelectionBase]
 public class LegManager : MonoBehaviour
 {
-    [SerializeField] BoxCollider _legPrefab;
-    [SerializeField, Range(1,20)] int _jointCount = 1;
+    public bool IsMoving { get; private set; }
 
-    [field: SerializeField] public float AcceptableDistance {get; private set;} = .05f;
-    [field: SerializeField] public float AngleX {get; private set;} = .31f;
-    [field: SerializeField] public float AngleY {get; private set;} = .2f;
-    [field: SerializeField] public int CalibrationAttempts {get; private set;} = 5;
-    [field: SerializeField] public float MoveSpeed {get; private set;} = 5;
-    [field: SerializeField] public bool Gizmos {get; private set;} = false;
-    [field: SerializeField] public float WobbleSpeed {get; private set;} = 1.69f;
+    [SerializeField] BoxCollider _legPrefab;
+    [SerializeField, Range(1, 20)] int _jointCount = 1;
+
+    [field: SerializeField] public float AcceptableDistance { get; private set; } = .05f;
+    [field: SerializeField] public float AngleX { get; private set; } = .31f;
+    [field: SerializeField] public float AngleY { get; private set; } = .2f;
+    [field: SerializeField] public int CalibrationAttempts { get; private set; } = 5;
+    [field: SerializeField] public float MoveSpeed { get; private set; } = 5;
+    [field: SerializeField] public bool Gizmos { get; private set; } = false;
+    [field: SerializeField] public float WobbleSpeed { get; private set; } = 1.69f;
     [field: SerializeField] public float WobbleAmplitude { get; private set; } = .15f;
     [field: SerializeField] public float ForwardReach { get; private set; } = .8f;
     [field: SerializeField] public float StepSpeed { get; private set; } = .5f;
+    [field: SerializeField] public float StepDistance { get; private set; } = 1f;
+    [field: SerializeField] public float RestStepDistance { get; private set; } = .1f;
     [field: SerializeField] public float DistanceFromBody { get; private set; } = .5f;
-
+    [SerializeField] bool _move;
 
     [SerializeField] float _groundOffset = 1f;
     [SerializeField] float _heightChangeLerp;
@@ -79,7 +83,9 @@ public class LegManager : MonoBehaviour
 
     void Update()
     {
-        MoveBody();
+        if(_move)
+            MoveBody();
+        IsMoving = _move;
         UpdateLegs();
         SetBodyHeight();
     }
