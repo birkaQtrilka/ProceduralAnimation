@@ -39,7 +39,7 @@ public class Leg
        
         //initial positioning
         Vector3 groundPoint;
-        if(!GetGround(out groundPoint))
+        if(!GetGroundTarget(out groundPoint))
         {
             Vector3 direction = GetYAngle() + data.ForwardReach * data.transform.forward + GetLegReach() * -data.transform.up / 2f;
             groundPoint = data.transform.position + direction;
@@ -54,7 +54,7 @@ public class Leg
 
     public virtual void Update()
     {
-        if (!GetGround(out Vector3 currentTarget))
+        if (!GetGroundTarget(out Vector3 currentTarget))
         {
             _debug = null;
             return;
@@ -79,11 +79,25 @@ public class Leg
 
     Vector3 InterpolateToTarget(Vector3 currentTarget)
     {
+        if(!data.IsMoving)
+        {
+
+        }
+
         _currLerpTime += Time.deltaTime;
-        float triggerDistance = data.IsMoving ? data.StepDistance : data.RestStepDistance;
+
+        bool interpolationEnded = _currLerpTime >= data.StepSpeed;
+        float triggerDistance = (!data.IsMoving && interpolationEnded) ? data.RestStepDistance : data.StepDistance;
+
         if (Vector3.Distance(_nextTarget, currentTarget) > triggerDistance && AdjacentLegsAreGrounded())
         {
             _lastTarget = _nextTarget;
+            _currLerpTime = 0;
+            _nextTarget = currentTarget;
+        }
+        else if (!data.IsMoving)
+        {
+            _lastTarget = Vector3.Slerp(_lastTarget, _nextTarget, _currLerpTime / data.StepSpeed);
             _currLerpTime = 0;
             _nextTarget = currentTarget;
         }
@@ -91,9 +105,9 @@ public class Leg
         return Vector3.Slerp(_lastTarget, _nextTarget, _currLerpTime / data.StepSpeed);
     }
 
-    bool GetGround(out Vector3 target)
+    bool GetGroundTarget(out Vector3 target)
     {
-        Vector3 direction = GetYAngle() * data.DistanceFromBody + data.transform.forward * data.ForwardReach;
+        Vector3 direction = GetYAngle() * data.DistanceFromBody + data.transform.forward * (data.IsMoving ? data.ForwardReach : 0) ;
         //in case the ground is higher than the body position, so the ray doesn't ignore the mesh 
         Vector3 abovePoint = data.transform.up * 5;
 
