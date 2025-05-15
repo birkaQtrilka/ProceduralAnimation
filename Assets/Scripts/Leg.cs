@@ -1,7 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using UnityEngine;
-using UnityEngine.UIElements.Experimental;
-using static UnityEngine.GraphicsBuffer;
 
 public class Leg
 {
@@ -21,25 +20,30 @@ public class Leg
     Vector3 _lastTarget;
 
     float _currLerpTime;
-    float _angleX, _angleY;
+    readonly float _angleX, _angleY;
 
     Leg[] _adjacentLegs;
     public bool IsGrounded => _currLerpTime > data.StepSpeed;
     public Vector3 CurrentGroundPosition { get; private set; }
 
-    public Leg(float angleX, float angleY, BoxCollider legPrefab, int jointCount, LegManager data)
+    public event Action<Leg> OnStep;
+
+    public float StepSize;
+    public float ForwardReach;
+
+    public Leg(float angleX, float angleY, BoxCollider legPrefab, int jointCount, LegManager data, float forwardReach)
     {
         this.data = data;
         _angleX = angleX;
         _angleY = angleY;
-
+        ForwardReach = forwardReach;
+        StepSize = data.StepDistance;
         members = new Member[jointCount];
         for (int i = 0; i < jointCount; i++)
             members[i] = new Member(GameObject.Instantiate(legPrefab, data.transform));
-       
+
         //initial positioning
-        Vector3 groundPoint;
-        if(!GetGroundTarget(out groundPoint))
+        if (!GetGroundTarget(out Vector3 groundPoint))
         {
             Vector3 direction = GetYAngle() + data.ForwardReach * data.transform.forward + GetLegReach() * -data.transform.up / 2f;
             groundPoint = data.transform.position + direction;
@@ -50,6 +54,11 @@ public class Leg
         _nextTarget = groundPoint;
         PositionLeg();
         InverseKinematics(_lastTarget);
+    }
+
+    public void ClearEvents()
+    {
+        OnStep = null;
     }
 
     public virtual void Update()
@@ -79,21 +88,18 @@ public class Leg
 
     Vector3 InterpolateToTarget(Vector3 currentTarget)
     {
-        if(!data.IsMoving)
-        {
-
-        }
-
         _currLerpTime += Time.deltaTime;
 
         bool interpolationEnded = _currLerpTime >= data.StepSpeed;
-        float triggerDistance = (!data.IsMoving && interpolationEnded) ? data.RestStepDistance : data.StepDistance;
+        float triggerDistance = (!data.IsMoving && interpolationEnded) ? data.RestStepDistance : StepSize;
 
         if (Vector3.Distance(_nextTarget, currentTarget) > triggerDistance && AdjacentLegsAreGrounded())
         {
             _lastTarget = _nextTarget;
             _currLerpTime = 0;
             _nextTarget = currentTarget;
+            
+            OnStep?.Invoke(this);
         }
         else if (!data.IsMoving)
         {
@@ -105,9 +111,17 @@ public class Leg
         return Vector3.Slerp(_lastTarget, _nextTarget, _currLerpTime / data.StepSpeed);
     }
 
+    public void SetNextTarget()
+    {
+        if(GetGroundTarget(out Vector3 target))
+        {
+            _nextTarget = target;
+        }
+    }
+
     bool GetGroundTarget(out Vector3 target)
     {
-        Vector3 direction = GetYAngle() * data.DistanceFromBody + data.transform.forward * (data.IsMoving ? data.ForwardReach : 0) ;
+        Vector3 direction = GetYAngle() * data.DistanceFromBody + data.transform.forward * (data.IsMoving ? ForwardReach : 0) ;
         //in case the ground is higher than the body position, so the ray doesn't ignore the mesh 
         Vector3 abovePoint = data.transform.up * 5;
 
@@ -129,6 +143,11 @@ public class Leg
     public void OnDrawGizmos()
     {
         if (_debug == null) return;
+       
+        Gizmos.color = Color.white;
+        Vector3 direction = GetYAngle() * data.DistanceFromBody + data.transform.forward * (data.IsMoving ? data.ForwardReach : 0);
+        Ray ray = new Ray(data.transform.position + direction, -data.transform.up);
+        Gizmos.DrawRay(ray);
 
         Gizmos.color = Color.yellow;
 
@@ -136,7 +155,9 @@ public class Leg
         Gizmos.color = Color.red;
 
         Gizmos.DrawSphere(_debug.last, .1f);
-        Gizmos.DrawLine(_debug.live, _debug.last);
+        Gizmos.color = Color.blue;
+
+        //Gizmos.DrawLine(_debug.live, _debug.last);
     }
 
     float GetLegReach()

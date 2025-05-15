@@ -1570,7 +1570,7 @@ MonoBehaviour:
   <AngleY>k__BackingField: 0.4
   <CalibrationAttempts>k__BackingField: 5
   <MoveSpeed>k__BackingField: 1.3
-  <Gizmos>k__BackingField: 0
+  <Gizmos>k__BackingField: 1
   <WobbleSpeed>k__BackingField: 3
   <WobbleAmplitude>k__BackingField: 11.6
   <ForwardReach>k__BackingField: 0.75
@@ -1581,8 +1581,8 @@ MonoBehaviour:
   _move: 0
   _groundOffset: 0.8
   _heightChangeLerp: 1.33
-  firstLeg: {fileID: 35452162800701799, guid: 3a93b5d35f3246a46b1e72657899b64d, type: 3}
-  firstSecondLeg: {fileID: 35452162800701799, guid: 3a93b5d35f3246a46b1e72657899b64d,
+  firstLeg: {fileID: 35452162800701799, guid: 1acc5ed296b39384b8eb76f852a9888f, type: 3}
+  firstSecondLeg: {fileID: 35452162800701799, guid: 112b8fd3673fd0c4c8711128a23c8aed,
     type: 3}
   Step: 0
 --- !u!4 &749248342

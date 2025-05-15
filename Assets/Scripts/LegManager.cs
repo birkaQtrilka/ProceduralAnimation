@@ -32,24 +32,25 @@ public class LegManager : MonoBehaviour
     Leg[] _legs;
     public bool Step;
     float _lastBodyHeight;
+    bool _startedMoving;
+    bool _waitForFirstLegs;
 
     void Start()
     {
         _legs = new Leg[]
         {
-           new (AngleX, 0, firstLeg, _jointCount, this),
-           new (AngleX, -AngleY, _legPrefab, _jointCount, this),
-           new (AngleX, -AngleY*2, _legPrefab, _jointCount, this),
+           new (AngleX, 0, firstLeg, _jointCount, this                    , ForwardReach),
+           new (AngleX, -AngleY, _legPrefab, _jointCount, this            , ForwardReach),
+           new (AngleX, -AngleY*2, _legPrefab, _jointCount, this          , ForwardReach),
 
-           new (AngleX, -AngleY*2 - 135, firstSecondLeg, _jointCount, this),
-           new (AngleX, -AngleY-135, _legPrefab, _jointCount, this),
-           new (AngleX, - 135, _legPrefab, _jointCount, this),
+           new (AngleX, -AngleY*2 - 135, firstSecondLeg, _jointCount, this, ForwardReach),
+           new (AngleX, -AngleY-135, _legPrefab, _jointCount, this        , ForwardReach),
+           new (AngleX, - 135, _legPrefab, _jointCount, this              , ForwardReach),
 
         };
 
         SetAdjacentLegs(_legs);
     }
-
     void SetAdjacentLegs( Leg[] arr)
     {
         Debug.Assert(arr.Length % 2 == 0);
@@ -84,7 +85,17 @@ public class LegManager : MonoBehaviour
     void Update()
     {
         if(_move)
-            MoveBody();
+        {
+            SetUpFirstStep();
+            if(_waitForFirstLegs)
+                MoveBody();
+        }
+        else
+        {
+            _waitForFirstLegs = false;
+            _startedMoving = false;
+        }
+
         IsMoving = _move;
         UpdateLegs();
         SetBodyHeight();
@@ -99,6 +110,40 @@ public class LegManager : MonoBehaviour
     void MoveBody()
     {
         transform.position += MoveSpeed * Time.deltaTime * transform.forward;
+    }
+
+    void SetUpFirstStep()
+    {
+        if (!_startedMoving)
+        {
+            _startedMoving = true;
+            //void legStepSizeReset(Leg l)
+            //{
+            //    l.StepSize = StepDistance;
+            //    Debug.Log("normal step size");
+            //    _waitForFirstLegs = true;
+            //    l.OnStep -= legStepSizeReset;
+            //}
+            //Debug.Log("rest step size");
+            //_legs[0].StepSize = RestStepDistance;
+            //_legs[0].OnStep += legStepSizeReset;
+
+            // after the first stem, make step distance lower
+            if (_legs.Length == 6)
+            {
+                void legStepSizeReset(Leg l)
+                {
+                    l.StepSize = StepDistance;
+                    _waitForFirstLegs = true;
+                    l.OnStep -= legStepSizeReset;
+                }
+                _legs[0].StepSize = RestStepDistance;
+                _legs[3].StepSize = RestStepDistance;
+                _legs[0].OnStep += legStepSizeReset;
+                _legs[3].OnStep += legStepSizeReset;
+
+            }
+        }
     }
 
     void SetBodyHeight()
@@ -129,5 +174,10 @@ public class LegManager : MonoBehaviour
         foreach (var leg in _legs)
             leg.OnDrawGizmos();
 
+    }
+
+    void OnDisable()
+    {
+        foreach (var leg in _legs) leg.ClearEvents();
     }
 }
