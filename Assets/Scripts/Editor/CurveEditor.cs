@@ -56,14 +56,12 @@ public class CurveEditor : Editor
 
         if(curve.AddOnMouse && Physics.Raycast(ray, out RaycastHit hit))
         {
-            Debug.Log("Adding spline point at mouse position: " + hit.point);
             Undo.RecordObject(curve, "Add Spline Point");
             curve.points.Add(handleTransform.InverseTransformPoint(hit.point));
             EditorUtility.SetDirty(curve);
             return true;
         }
 
-        Debug.Log("Adding spline point at on last modified point: " + _lastModifiedPointIndex);
         Undo.RecordObject(curve, "Add Spline Point");
 
         InsertPointOnLastModified();
