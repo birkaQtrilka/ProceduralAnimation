@@ -129,20 +129,17 @@ public class LegManager : MonoBehaviour
             //_legs[0].OnStep += legStepSizeReset;
 
             // after the first stem, make step distance lower
-            if (_legs.Length == 6)
+            void legStepSizeReset(Leg l)
             {
-                void legStepSizeReset(Leg l)
-                {
-                    l.StepSize = StepDistance;
-                    _waitForFirstLegs = true;
-                    l.OnStep -= legStepSizeReset;
-                }
-                _legs[0].StepSize = RestStepDistance;
-                _legs[3].StepSize = RestStepDistance;
-                _legs[0].OnStep += legStepSizeReset;
-                _legs[3].OnStep += legStepSizeReset;
-
+                l.StepSize = StepDistance;
+                _waitForFirstLegs = true;
+                l.OnStep -= legStepSizeReset;
             }
+            _legs[0].StepSize = RestStepDistance;
+            _legs[_legs.Length/2].StepSize = RestStepDistance;
+            _legs[0].OnStep += legStepSizeReset;
+            _legs[_legs.Length / 2].OnStep += legStepSizeReset;
+
         }
     }
 

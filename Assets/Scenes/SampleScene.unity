@@ -1565,7 +1565,7 @@ MonoBehaviour:
   _legPrefab: {fileID: 35452162800701799, guid: 3a93b5d35f3246a46b1e72657899b64d,
     type: 3}
   _jointCount: 5
-  <AcceptableDistance>k__BackingField: 0.05
+  <AcceptableDistance>k__BackingField: 0.001
   <AngleX>k__BackingField: 0.55
   <AngleY>k__BackingField: 0.4
   <CalibrationAttempts>k__BackingField: 5
@@ -2308,13 +2308,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1017134804}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.4753939, y: 0, z: 0, w: 0.8797731}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.3, y: 0.4, z: 0.054047715}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1509350015}
-  m_LocalEulerAnglesHint: {x: 56.77, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &1017134806
 BoxCollider:
   m_ObjectHideFlags: 0

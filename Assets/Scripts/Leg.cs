@@ -123,7 +123,7 @@ public class Leg
     {
         Vector3 direction = GetYAngle() * data.DistanceFromBody + data.transform.forward * (data.IsMoving ? ForwardReach : 0) ;
         //in case the ground is higher than the body position, so the ray doesn't ignore the mesh 
-        Vector3 abovePoint = data.transform.up * 5;
+        Vector3 abovePoint = data.transform.up * 3;
 
         bool hasHit = Physics.Raycast(data.transform.position + abovePoint + direction, -data.transform.up, out RaycastHit hit, GetLegReach() + abovePoint.magnitude, 1 << LayerMask.NameToLayer("Ground"));
         target = hit.point;
